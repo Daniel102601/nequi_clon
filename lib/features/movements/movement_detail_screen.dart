@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
 
 class MovementDetailScreen extends StatelessWidget {
+  // El mapa ahora contiene las llaves de la base de datos: tipo, monto, descripcion, fecha
   final Map<String, dynamic> movement;
 
   const MovementDetailScreen({super.key, required this.movement});
 
   @override
   Widget build(BuildContext context) {
-    // Paleta de colores
     final Color nequiPink = const Color(0xFFE80070);
-    final bool isIncome = movement["isIncome"];
+    final Color darkPurple = const Color(0xFF2C004F);
+
+    // DETERMINAMOS SI ES ENTRADA O SALIDA SEGÚN EL TIPO DE LA DB
+    final bool isIncome = movement["tipo"] == 'recibo' || movement["tipo"] == 'recarga';
+
+    // FORMATEAMOS LOS VALORES PARA MOSTRAR
+    final String title = movement["descripcion"] ?? "Movimiento";
+    final String amount = movement["monto"].toString();
+    final String date = movement["fecha"] ?? "Sin fecha";
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -31,7 +39,7 @@ class MovementDetailScreen extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            // Ícono principal
+            // Ícono principal dinámico
             CircleAvatar(
               radius: 40,
               backgroundColor: isIncome ? Colors.green.shade50 : nequiPink.withOpacity(0.1),
@@ -43,23 +51,24 @@ class MovementDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Título y Monto
+            // Título (Descripción) y Monto
             Text(
-              movement["title"],
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             Text(
-              movement["amount"],
+              "${isIncome ? '+' : '-'} \$ $amount",
               style: TextStyle(
-                fontSize: 38,
+                fontSize: 34,
                 fontWeight: FontWeight.bold,
                 color: isIncome ? Colors.green.shade700 : Colors.black87,
               ),
             ),
             const SizedBox(height: 40),
 
-            // Tarjeta de detalles (Recibo)
+            // Tarjeta de detalles (Recibo digital)
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -75,15 +84,24 @@ class MovementDetailScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _buildDetailRow("Fecha", movement["date"]),
+                  _buildDetailRow("Fecha", date),
                   const Divider(height: 30),
                   _buildDetailRow("Referencia", _generateMockReference()),
                   const Divider(height: 30),
-                  _buildDetailRow("Estado", "Aprobado", valueColor: Colors.green.shade700),
+                  _buildDetailRow("Estado", "Exitoso", valueColor: Colors.green.shade700),
                   const Divider(height: 30),
-                  _buildDetailRow("Origen/Destino", isIncome ? "Bancolombia" : "Pago Nequi"),
+                  _buildDetailRow("Tipo de movimiento", movement["tipo"].toString().toUpperCase()),
+                  const Divider(height: 30),
+                  _buildDetailRow("Medio", "Billetera Digital"),
                 ],
               ),
+            ),
+            const SizedBox(height: 30),
+            // Botón decorativo de compartir
+            TextButton.icon(
+              onPressed: () {},
+              icon: Icon(Icons.share_outlined, color: darkPurple),
+              label: Text("Compartir comprobante", style: TextStyle(color: darkPurple, fontWeight: FontWeight.bold)),
             )
           ],
         ),
@@ -91,20 +109,19 @@ class MovementDetailScreen extends StatelessWidget {
     );
   }
 
-  // Widget reutilizable para las filas del recibo
   Widget _buildDetailRow(String label, String value, {Color? valueColor}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
         ),
         Text(
           value,
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            fontSize: 16,
+            fontSize: 14,
             color: valueColor ?? Colors.black87,
           ),
         ),
@@ -112,8 +129,7 @@ class MovementDetailScreen extends StatelessWidget {
     );
   }
 
-  // Genera un número de referencia aleatorio para darle realismo
   String _generateMockReference() {
-    return "M-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}";
+    return "REF-${movement["id"] ?? DateTime.now().millisecondsSinceEpoch.toString().substring(8)}";
   }
 }

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class SendScreen extends StatefulWidget {
   const SendScreen({super.key});
@@ -12,12 +15,13 @@ class _SendScreenState extends State<SendScreen> {
   final Color nequiPink = const Color(0xFFE80070);
   final Color bgColor = const Color(0xFFF5F5F5);
 
-  // Controladores para capturar lo que el usuario escribe
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
 
-  // Datos mock para contactos recientes (Números con formato de Colombia)
+  bool _isLoading = false; // Para controlar el estado del botón
+
+  // Datos mock para contactos
   final List<Map<String, String>> recentContacts = [
     {"name": "Mamá", "phone": "3123456789"},
     {"name": "Carlos M.", "phone": "3009876543"},
@@ -33,19 +37,59 @@ class _SendScreenState extends State<SendScreen> {
     super.dispose();
   }
 
-  // Simula la acción de enviar dinero
-  void _sendMoney() {
-    if (_phoneController.text.isEmpty || _amountController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Por favor ingresa el número y la cantidad"),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+  // --- LÓGICA DE ENVÍO REAL A MARIA DB ---
+  Future<void> _handleSendMoney() async {
+    // 1. Validaciones básicas de Front-end
+    if (_phoneController.text.length < 10 || _amountController.text.isEmpty) {
+      _showSnackBar("Ingresa un número de 10 dígitos y un monto válido", Colors.redAccent);
       return;
     }
 
-    // Muestra un diálogo de éxito simulado
+    double? monto = double.tryParse(_amountController.text);
+    if (monto == null || monto <= 0) {
+      _showSnackBar("El monto debe ser mayor a 0", Colors.redAccent);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // 2. Obtener el ID del emisor (quien está logueado)
+      final prefs = await SharedPreferences.getInstance();
+      final emisorId = prefs.getString("user_id");
+
+      // 3. Petición POST al PHP
+      final response = await http.post(
+        Uri.parse("http://10.0.2.2/nequi_api/enviar_plata.php"),
+        body: {
+          "emisor_id": emisorId,
+          "telefono_receptor": _phoneController.text,
+          "monto": _amountController.text,
+          "descripcion": _messageController.text, // Opcional
+        },
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['status'] == 'success') {
+        _showSuccessDialog(); // Si todo salió bien en la DB
+      } else {
+        _showSnackBar(data['message'] ?? "Error en la transacción", Colors.redAccent);
+      }
+    } catch (e) {
+      _showSnackBar("Error de conexión: $e", Colors.redAccent);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
+  }
+
+  void _showSuccessDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -55,10 +99,7 @@ class _SendScreenState extends State<SendScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              "¡Envío exitoso!",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
+            const Text("¡Envío exitoso!", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             Text(
               "Le enviaste \$ ${_amountController.text} al número ${_phoneController.text}",
@@ -72,9 +113,7 @@ class _SendScreenState extends State<SendScreen> {
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: nequiPink,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
               ),
               onPressed: () {
@@ -100,10 +139,7 @@ class _SendScreenState extends State<SendScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "Envía plata",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-        ),
+        title: const Text("Envía plata", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         centerTitle: true,
       ),
       body: Column(
@@ -115,11 +151,7 @@ class _SendScreenState extends State<SendScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. SECCIÓN DE CONTACTOS RECIENTES
-                  const Text(
-                    "Recientes",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+                  const Text("Recientes", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 15),
                   SizedBox(
                     height: 100,
@@ -130,12 +162,7 @@ class _SendScreenState extends State<SendScreen> {
                       itemBuilder: (context, index) {
                         final contact = recentContacts[index];
                         return GestureDetector(
-                          onTap: () {
-                            // Al tocar un contacto, se llena el campo del celular
-                            setState(() {
-                              _phoneController.text = contact["phone"]!;
-                            });
-                          },
+                          onTap: () => setState(() => _phoneController.text = contact["phone"]!),
                           child: Padding(
                             padding: const EdgeInsets.only(right: 20),
                             child: Column(
@@ -143,23 +170,10 @@ class _SendScreenState extends State<SendScreen> {
                                 CircleAvatar(
                                   radius: 30,
                                   backgroundColor: darkPurple.withOpacity(0.1),
-                                  child: Text(
-                                    contact["name"]![0], // Primera letra del nombre
-                                    style: TextStyle(
-                                      color: darkPurple,
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                  child: Text(contact["name"]![0], style: TextStyle(color: darkPurple, fontSize: 22, fontWeight: FontWeight.bold)),
                                 ),
                                 const SizedBox(height: 8),
-                                Text(
-                                  contact["name"]!,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
+                                Text(contact["name"]!, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                               ],
                             ),
                           ),
@@ -167,14 +181,8 @@ class _SendScreenState extends State<SendScreen> {
                       },
                     ),
                   ),
-
                   const Divider(height: 40),
-
-                  // 2. FORMULARIO DE ENVÍO
-                  const Text(
-                    "¿A qué número?",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+                  const Text("¿A qué número?", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 10),
                   TextField(
                     controller: _phoneController,
@@ -185,20 +193,12 @@ class _SendScreenState extends State<SendScreen> {
                       prefixIcon: const Icon(Icons.phone_android),
                       filled: true,
                       fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide.none,
-                      ),
-                      counterText: "", // Oculta el contador de caracteres
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                      counterText: "",
                     ),
                   ),
-
                   const SizedBox(height: 25),
-
-                  const Text(
-                    "¿Cuánta plata?",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+                  const Text("¿Cuánta plata?", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 10),
                   TextField(
                     controller: _amountController,
@@ -210,19 +210,11 @@ class _SendScreenState extends State<SendScreen> {
                       prefixStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
                       filled: true,
                       fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide.none,
-                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
                     ),
                   ),
-
                   const SizedBox(height: 25),
-
-                  const Text(
-                    "Mensaje (Opcional)",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+                  const Text("Mensaje (Opcional)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 10),
                   TextField(
                     controller: _messageController,
@@ -231,49 +223,28 @@ class _SendScreenState extends State<SendScreen> {
                       hintText: "¿Para qué es esta plata?",
                       filled: true,
                       fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide.none,
-                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-
-          // 3. BOTÓN INFERIOR DE ENVÍO
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  )
-                ]
-            ),
+            decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))]),
             child: ElevatedButton(
-              onPressed: _sendMoney,
+              onPressed: _isLoading ? null : _handleSendMoney, // Desactiva si está cargando
               style: ElevatedButton.styleFrom(
                 backgroundColor: nequiPink,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 elevation: 0,
               ),
-              child: const Text(
-                "Envía",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold
-                ),
-              ),
+              child: _isLoading
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text("Envía", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             ),
           )
         ],
