@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     stages {
-        // PASO CLAVE: Borramos lo viejo antes de empezar
         stage('0. Limpieza de Seguridad') {
             steps {
                 cleanWs()
@@ -20,7 +19,7 @@ pipeline {
         stage('2. Pruebas de Backend (API)') {
             steps {
                 echo 'Ejecutando pruebas de Postman contra XAMPP...'
-                // Usamos la ruta absoluta que ya sabemos que funciona en tu PC
+                // Newman funcionando con éxito
                 bat 'C:\\Users\\Ramde\\AppData\\Roaming\\npm\\newman.cmd run test/api_tests.json'
             }
         }
@@ -28,8 +27,9 @@ pipeline {
         stage('3. Pruebas de Frontend (Flutter)') {
             steps {
                 echo 'Ejecutando pruebas unitarias de Flutter...'
-                bat 'flutter pub get'
-                bat 'flutter test'
+                // Usamos tu ruta exacta con doble barra invertida (\\)
+                bat 'C:\\src\\flutter\\flutter\\flutter\\bin\\flutter.bat pub get'
+                bat 'C:\\src\\flutter\\flutter\\flutter\\bin\\flutter.bat test'
             }
         }
     }
