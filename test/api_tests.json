@@ -53,7 +53,7 @@
           ]
         },
         "url": {
-          "raw": "http://localhost/phpmyadmin/index.php?route=/database/structure&db=clon_nequi",
+          "raw": "file:///C:/xampp/htdocs/nequi_api/login.php",
           "protocol": "http",
           "host": [
             "localhost"
