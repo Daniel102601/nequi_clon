@@ -1,7 +1,15 @@
 pipeline {
-    agent any // Le dice a Jenkins que use cualquier recurso disponible
+    agent any
 
     stages {
+        // PASO CLAVE: Borramos lo viejo antes de empezar
+        stage('0. Limpieza de Seguridad') {
+            steps {
+                cleanWs()
+                echo 'Borrando archivos viejos para asegurar que bajamos lo nuevo de GitHub...'
+            }
+        }
+
         stage('1. Obtener Código') {
             steps {
                 echo 'Descargando la última versión desde GitHub...'
@@ -12,7 +20,7 @@ pipeline {
         stage('2. Pruebas de Backend (API)') {
             steps {
                 echo 'Ejecutando pruebas de Postman contra XAMPP...'
-                // AQUI ESTÁ EL CAMBIO: Cambiamos "tests/" por "test/"
+                // Usamos la ruta absoluta que ya sabemos que funciona en tu PC
                 bat 'C:\\Users\\Ramde\\AppData\\Roaming\\npm\\newman.cmd run test/api_tests.json'
             }
         }
@@ -20,7 +28,6 @@ pipeline {
         stage('3. Pruebas de Frontend (Flutter)') {
             steps {
                 echo 'Ejecutando pruebas unitarias de Flutter...'
-                // Descarga las dependencias y corre los tests
                 bat 'flutter pub get'
                 bat 'flutter test'
             }
