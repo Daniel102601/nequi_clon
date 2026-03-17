@@ -12,8 +12,8 @@ pipeline {
         stage('2. Pruebas de Backend (API)') {
             steps {
                 echo 'Ejecutando pruebas de Postman contra XAMPP...'
-                // Usamos la ruta absoluta exacta para evitar problemas de PATH en Windows
-                bat 'C:\\Users\\Ramde\\AppData\\Roaming\\npm\\newman.cmd run tests/api_tests.json'
+                // AQUI ESTÁ EL CAMBIO: Cambiamos "tests/" por "test/"
+                bat 'C:\\Users\\Ramde\\AppData\\Roaming\\npm\\newman.cmd run test/api_tests.json'
             }
         }
 
