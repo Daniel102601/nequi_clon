@@ -2,33 +2,27 @@
   "info": {
     "_postman_id": "63f17933-10ed-47d0-871e-c611ca706719",
     "name": "Nequi API Tests",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "53253620",
-    "_collection_link": "https://go.postman.co/collection/53253620-63f17933-10ed-47d0-871e-c611ca706719?source=collection_link"
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "Test Login Exitoso",
+      "name": "VERIFICACION LOGIN REAL",
       "event": [
         {
           "listen": "test",
           "script": {
             "exec": [
-              "// 1. Verificamos que el servidor responda correctamente (Código HTTP 200)\r",
-              "pm.test(\"El servidor responde con status 200\", function () {\r",
-              "    pm.response.to.have.status(200);\r",
-              "});\r",
-              "\r",
-              "// 2. Verificamos que tu PHP devuelva el JSON esperado\r",
-              "pm.test(\"El login es exitoso según la base de datos\", function () {\r",
-              "    var jsonData = pm.response.json();\r",
-              "    pm.expect(jsonData.status).to.eql(\"success\");\r",
-              "    pm.expect(jsonData.data).to.have.property(\"id\"); // Verificamos que devuelva un ID\r",
+              "pm.test(\"El servidor responde con status 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"El login es exitoso según la base de datos\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.status).to.eql(\"success\");",
+              "    pm.expect(jsonData.data).to.have.property(\"id\");",
               "});"
             ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
+            "type": "text/javascript"
           }
         }
       ],
@@ -41,36 +35,24 @@
             {
               "key": "telefono",
               "value": "3016872575",
-              "type": "text",
-              "uuid": "9396b26d-f814-4d60-b11c-752e2873e0d0"
+              "type": "text"
             },
             {
               "key": "pin",
               "value": "1026",
-              "type": "text",
-              "uuid": "92e4feff-a113-4be9-8ad8-49442f604d4c"
+              "type": "text"
             }
           ]
         },
         "url": {
-          "raw": "file:///C:/xampp/htdocs/nequi_api/login.php",
+          "raw": "http://localhost/nequi_api/login.php",
           "protocol": "http",
           "host": [
             "localhost"
           ],
           "path": [
-            "phpmyadmin",
-            "index.php"
-          ],
-          "query": [
-            {
-              "key": "route",
-              "value": "/database/structure"
-            },
-            {
-              "key": "db",
-              "value": "clon_nequi"
-            }
+            "nequi_api",
+            "login.php"
           ]
         }
       },
