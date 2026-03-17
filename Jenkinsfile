@@ -2,32 +2,33 @@ pipeline {
     agent any
 
     stages {
-        stage('0. Limpieza de Seguridad') {
+        stage('0. Configuración y Limpieza') {
             steps {
                 cleanWs()
-                echo 'Borrando archivos viejos para asegurar que bajamos lo nuevo de GitHub...'
+                echo 'Configurando permisos de Git y limpiando...'
+                // Le decimos a Git que confíe en la carpeta de Flutter
+                bat 'git config --global --add safe.directory C:/src/flutter/flutter/flutter'
             }
         }
 
         stage('1. Obtener Código') {
             steps {
-                echo 'Descargando la última versión desde GitHub...'
+                echo 'Descargando código...'
                 checkout scm
             }
         }
 
         stage('2. Pruebas de Backend (API)') {
             steps {
-                echo 'Ejecutando pruebas de Postman contra XAMPP...'
-                // Newman funcionando con éxito
+                echo 'Ejecutando Newman...'
                 bat 'C:\\Users\\Ramde\\AppData\\Roaming\\npm\\newman.cmd run test/api_tests.json'
             }
         }
 
         stage('3. Pruebas de Frontend (Flutter)') {
             steps {
-                echo 'Ejecutando pruebas unitarias de Flutter...'
-                // Usamos tu ruta exacta con doble barra invertida (\\)
+                echo 'Ejecutando Flutter...'
+                // Usamos tu ruta exacta
                 bat 'C:\\src\\flutter\\flutter\\flutter\\bin\\flutter.bat pub get'
                 bat 'C:\\src\\flutter\\flutter\\flutter\\bin\\flutter.bat test'
             }
@@ -36,10 +37,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ EXCELENTE INGENIERO: Todas las pruebas en verde. Código listo para producción.'
+            echo '✅ TODO EN VERDE: Eres un crack, Daniel.'
         }
         failure {
-            echo '❌ ALERTA ROJA: Algo falló en las pruebas. Revisa los logs de la consola.'
+            echo '❌ FALLO: Revisa los permisos de la carpeta de Flutter.'
         }
     }
 }
